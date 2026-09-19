@@ -1,0 +1,63 @@
+%%{
+  init: {
+    'theme': 'redux-dark-color'
+  }
+}%%
+erDiagram
+    Location ||--o{ Event : ""
+    Location ||--o{ Seat : ""
+    Seat |o--o{ Ticket : ""
+    Event ||--o{ Ticket : ""
+    Event }o--|| Event_categories : ""
+    Customer ||--o{ Ticket : ""
+    Ticket ||--o| Payment : ""
+
+    Location {
+        int location_id PK
+        string city
+        string address
+        string number
+    }
+
+    Event {
+        int event_id PK
+        int location_id FK
+        int category_id FK
+        datetime event_date
+        time start_time
+        string event_name
+    }
+
+    Event_categories {
+        int category_id PK
+        string category_name
+    }
+
+    Payment {
+        int payment_id PK
+        int ticket_id FK
+        datetime payment_time
+        string payment_method
+        string status
+    }
+
+    Customer {
+        int customer_id PK
+        string email
+        string phone_number
+        string name
+    }
+
+    Ticket {
+        int ticket_id PK
+        int event_id FK
+        int customer_id FK
+        int seat_id FK
+        decimal ticket_price
+    }
+
+    Seat {
+        int seat_id PK
+        int location_id FK
+        int sector_id FK
+    }
