@@ -11,6 +11,8 @@ erDiagram
     Event }o--|| Event_categories : ""
     Customer ||--o{ Ticket : ""
     Ticket ||--o| Payment : ""
+    Customer ||--o{ Favourites : ""
+    Event ||--o{ Favourites : ""
 
     Location {
         int location_id PK
@@ -33,19 +35,16 @@ erDiagram
         string category_name
     }
 
-    Payment {
-        int payment_id PK
-        int ticket_id FK
-        datetime payment_time
-        string payment_method
-        string status
-    }
-
     Customer {
         int customer_id PK
         string email
         string phone_number
         string name
+    }
+
+    Favourites{
+        int customer_id PK, FK
+        int event_id PK, FK
     }
 
     Ticket {
@@ -54,10 +53,21 @@ erDiagram
         int customer_id FK
         int seat_id FK
         decimal ticket_price
+        
     }
+    
+    Payment {
+        int payment_id PK
+        int ticket_id FK
+        datetime payment_time
+        string payment_method
+        string status
+        decimal amount
+    }
+
 
     Seat {
         int seat_id PK
         int location_id FK
-        int sector_id FK
+        int sector_id
     }
