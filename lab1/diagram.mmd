@@ -4,15 +4,15 @@
   }
 }%%
 erDiagram
-    Location ||--o{ Event : ""
-    Location ||--o{ Seat : ""
-    Seat |o--o{ Ticket : ""
-    Event ||--o{ Ticket : ""
-    Event }o--|| Event_categories : ""
-    Customer ||--o{ Ticket : ""
-    Ticket ||--o| Payment : ""
-    Customer ||--o{ Favourites : ""
-    Event ||--o{ Favourites : ""
+    Location ||--o{ Event : "hosts"
+    Location ||--o{ Seat : "contains"
+    Seat |o--o{ Ticket : "is reserved in"
+    Event ||--o{ Ticket : "issues"
+    Event }o--|| Event_categories : "categorizes"
+    Event }o--o| Event_genres : "specifies"
+    Customer ||--o{ Ticket : "purchases"
+    Ticket ||--o| Payment : "requires"
+    Customer }o--o{ Event : "favourites"
 
     Location {
         int location_id PK
@@ -25,6 +25,7 @@ erDiagram
         int event_id PK
         int location_id FK
         int category_id FK
+        int genre_id FK
         datetime event_date
         time start_time
         string event_name
@@ -35,16 +36,16 @@ erDiagram
         string category_name
     }
 
+    Event_genres {
+        int genre_id PK
+        string genre_name
+    }
+
     Customer {
         int customer_id PK
         string email
         string phone_number
         string name
-    }
-
-    Favourites{
-        int customer_id PK, FK
-        int event_id PK, FK
     }
 
     Ticket {
@@ -53,9 +54,8 @@ erDiagram
         int customer_id FK
         int seat_id FK
         decimal ticket_price
-        
     }
-    
+
     Payment {
         int payment_id PK
         int ticket_id FK
@@ -64,7 +64,6 @@ erDiagram
         string status
         decimal amount
     }
-
 
     Seat {
         int seat_id PK
