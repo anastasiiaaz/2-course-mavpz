@@ -13,6 +13,9 @@ erDiagram
     Customer ||--o{ Ticket : "purchases"
     Ticket ||--o| Payment : "requires"
     Customer }o--o{ Event : "favourites"
+    
+    Customer ||--o{ Review : "writes"
+    Event ||--o{ Review : "receives"
 
     Location {
         int location_id PK
@@ -69,4 +72,13 @@ erDiagram
         int seat_id PK
         int location_id FK
         int sector_id
+    }
+
+    Review {
+        int review_id PK
+        int customer_id FK
+        int event_id FK
+        int rating
+        string comment
+        datetime created_at
     }
