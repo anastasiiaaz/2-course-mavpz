@@ -2,8 +2,8 @@
 
 left to right direction
 skinparam packageStyle rectangle
-
 skinparam actorStyle awesome
+
 skinparam usecase {
     BackgroundColor LightPink
     BorderColor DarkSlateGray
@@ -14,32 +14,37 @@ actor "Guest" as Guest
 actor "Customer" as Customer
 actor "Admin" as Admin
 
+actor "Payment Gateway" as PG
+actor "Email Service" as ES
+
 Customer -up-|> Guest
 
 rectangle "Event Ticketing System" {
-    'for guest
     usecase "search and filter events\n(city, genre, category)" as UC1
     usecase "see event details\n(location, available seats, price)" as UC2
-
-    'for customer
-    usecase "check history of attended events" as UC3
     usecase "create an account" as UC4
+
+    usecase "check history of attended events" as UC3
     usecase "edit profile" as UC5
     usecase "add event to favourite list" as UC6
     usecase "buy ticket" as UC7
-    usecase "receive a ticket by email or download ticket" as UC8
+    usecase "download/get ticket" as UC8
     usecase "use promocodes or certificates" as UC9
     usecase "request ticket refund" as UC16
     usecase "leave a review or rating" as UC17
 
-    'for admin
     usecase "add an event" as UC10
-    usecase "edit/cancel event" as UC11
+    usecase "edit event" as UC11
     usecase "view analytics" as UC12
     usecase "view list of registered customers" as UC13
     usecase "make a ticket refund" as UC14
     usecase "manage promocodes and discounts" as UC15
     usecase "scan ticket" as UC18
+    usecase "cancel event" as UC19
+
+    usecase "process payment" as UC20
+    usecase "refund payment" as UC21
+    usecase "send email notification" as UC22
 }
 
 Guest --> UC1
@@ -50,22 +55,31 @@ Customer --> UC3
 Customer --> UC5
 Customer --> UC6
 Customer --> UC7
+Customer --> UC8
 Customer --> UC16
 
-Admin --> UC4
 Admin --> UC10
+Admin --> UC11
 Admin --> UC12
 Admin --> UC13
 Admin --> UC14
 Admin --> UC15
 Admin --> UC18
+Admin --> UC19
 
+UC20 -- PG
+UC21 -- PG
+UC22 -- ES
 
+UC7  .> UC20 : <<include>>
+UC7  .> UC22 : <<include>>
+UC14 .> UC21 : <<include>>
+UC14 .> UC22 : <<include>>
+UC19 .> UC21 : <<include>>
+UC19 .> UC22 : <<include>>
 
-UC9 .> UC7 : <<extend>>
-UC8 .> UC7 : <<extend>>
-UC16 .> UC7 : <<extend>>
-UC17 .> UC3 : <<extend>>
-UC11 .> UC10 : <<extend>>
+UC9  .> UC7  : <<extend>>
+UC17 .> UC3  : <<extend>>
+UC6  .> UC2  : <<extend>>
 
 @enduml
