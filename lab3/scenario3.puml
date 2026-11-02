@@ -1,0 +1,48 @@
+@startuml
+autonumber
+actor "Admin" as Admin
+participant "ScannerApp UI" as UI
+participant "ScannerService" as Scanner
+participant "TicketService" as TicketService
+database "Database" as DB
+
+Admin -> UI: scanTicketQRCode(qrCodeData)
+activate UI
+
+UI -> Scanner: processScan(qrCodeData)
+activate Scanner
+
+Scanner -> TicketService: validateAndCheckIn(ticketId)
+activate TicketService
+
+TicketService -> DB: findTicketById(ticketId)
+activate DB
+DB --> TicketService: ticketDetails(status, eventId, holderName)
+deactivate DB
+
+alt Сценарій 1: Квиток дійсний [status == "active"]
+    TicketService -> DB: updateTicketStatus(ticketId, newStatus="used")
+    activate DB
+    DB --> TicketService: statusUpdated
+    deactivate DB
+
+    TicketService --> Scanner: checkInSuccess(ticketId, holderName)
+    Scanner --> UI: displaySuccessMessage("Ласкаво просимо! Квиток дійсний")
+    UI --> Admin: showGreenLight()
+
+else Сценарій 2: Спроба повторного проходу [status == "used"]
+    TicketService -> DB: logInvalidScanAttempt(ticketId, reason="already_used")
+    activate DB
+    DB --> TicketService: attemptLogged
+    deactivate DB
+
+    TicketService --> Scanner: checkInFailed("Квиток вже використався")
+    Scanner --> UI: displayErrorMessage("Помилка доступу: Квиток вже використався")
+    UI --> Admin: showRedAlert()
+end
+
+deactivate TicketService
+deactivate Scanner
+deactivate UI
+
+@enduml

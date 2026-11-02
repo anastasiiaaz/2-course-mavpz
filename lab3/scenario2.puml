@@ -1,0 +1,69 @@
+@startuml
+autonumber
+actor "Admin" as Admin
+participant "Admin Dashboard UI" as UI
+participant "EventService" as EventService
+participant "TicketService" as TicketService
+participant "Payment Gateway" as Payment
+participant "Email Service" as Email
+database "Database" as DB
+
+Admin -> UI: cancelEvent(eventId, reason)
+activate UI
+
+UI -> EventService: processEventCancellation(adminId, eventId, reason)
+activate EventService
+
+EventService -> DB: checkAdminPermissions(adminId)
+activate DB
+DB --> EventService: permissionsValid
+deactivate DB
+
+EventService -> DB: updateEventStatus(eventId, status="cancelled")
+activate DB
+DB --> EventService: eventUpdated
+deactivate DB
+
+EventService -> TicketService: processRefundsAndNotifications(eventId)
+activate TicketService
+
+TicketService -> DB: getPurchasedTicketsByEvent(eventId)
+activate DB
+DB --> TicketService: ticketList
+deactivate DB
+
+loop Для кожного придбаного квитка з ticketList
+    TicketService -> Payment: initiateRefund(transactionId, amount)
+    activate Payment
+    Payment --> TicketService: refundStatus
+    deactivate Payment
+
+    alt Refund Success [status == "success"]
+        TicketService -> DB: updateTicketStatus(ticketId, status="refunded")
+        activate DB
+        DB --> TicketService: statusUpdated
+        deactivate DB
+
+        TicketService -> Email: sendEventCancellationEmail(customerEmail, eventTitle, refundAmount)
+        activate Email
+        Email --> TicketService: emailQueued
+        deactivate Email
+
+    else Refund Failed [status != "success"]
+        TicketService -> DB: logRefundFailure(ticketId, reason)
+        activate DB
+        DB --> TicketService: failureLogged
+        deactivate DB
+    end
+end
+
+TicketService --> EventService: cancellationProcessingCompleted()
+deactivate TicketService
+
+EventService --> UI: eventCancelledSuccess(eventId, totalTicketsProcessed)
+UI --> Admin: displayCancellationConfirmation()
+
+deactivate EventService
+deactivate UI
+
+@enduml

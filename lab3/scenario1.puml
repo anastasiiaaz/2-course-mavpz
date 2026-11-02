@@ -1,0 +1,93 @@
+@startuml
+autonumber
+actor "Customer" as Customer
+actor "Guest" as Guest
+participant "Checkout UI" as UI
+participant "OrderService" as OrderService
+participant "PromoCodeService" as PromoService
+participant "Payment Gateway" as Payment
+participant "TicketService" as TicketService
+participant "Email Service" as Email
+database "Database" as DB
+
+alt Неавторизований користувач (Guest)
+    Guest -> UI: startCheckout(seatId)
+    activate UI
+    UI -> OrderService: createReservation(userId=null, seatId)
+    activate OrderService
+    OrderService --> UI: errorUnauthorized("Потрібна авторизація")
+    deactivate OrderService
+    UI --> Guest: redirectToLogin()
+    deactivate UI
+end
+
+alt Зареєстрований користувач (Customer)
+    Customer -> UI: startCheckout(seatId)
+    activate UI
+
+    UI -> OrderService: createReservation(customerId, seatId)
+    activate OrderService
+    OrderService -> DB: reserveSeat(seatId, customerId, duration="10m")
+    activate DB
+    DB --> OrderService: reservationConfirmed
+    deactivate DB
+
+    OrderService --> UI: reservationSuccess(reservationId, basePrice, expiresAt)
+    deactivate OrderService
+
+    opt Введення промокоду [promocode is provided]
+        Customer -> UI: applyPromoCode(promocode)
+        UI -> PromoService: validateAndCalculate(promocode, basePrice)
+        activate PromoService
+        PromoService -> DB: findPromoCode(promocode)
+        activate DB
+        DB --> PromoService: promoCodeDetails
+        deactivate DB
+        
+        PromoService --> UI: promoApplied(finalPrice, discountAmount)
+        deactivate PromoService
+    end
+
+    Customer -> UI: submitOrder(paymentDetails)
+    UI -> OrderService: processOrder(reservationId, promoCodeId, finalPrice)
+    activate OrderService
+
+    OrderService -> Payment: processPayment(amount=finalPrice, paymentDetails)
+    activate Payment
+    Payment --> OrderService: paymentStatus
+    deactivate Payment
+
+    alt Payment Success [status == "success"]
+        OrderService -> TicketService: createTicket(customerId, seatId, finalPrice)
+        activate TicketService
+        TicketService -> DB: saveTicket(ticketData)
+        activate DB
+        DB --> TicketService: ticketRecord
+        deactivate DB
+        
+        TicketService -> Email: sendTicketEmail(customerEmail, ticketRecord)
+        activate Email
+        Email --> TicketService: emailSent
+        deactivate Email
+        
+        TicketService --> OrderService: ticketCreated(ticketId)
+        deactivate TicketService
+        
+        OrderService --> UI: orderSuccess(ticketId)
+        UI --> Customer: displaySuccessPage()
+
+    else Payment Failed [status != "success"]
+        OrderService -> DB: releaseReservation(reservationId)
+        activate DB
+        DB --> OrderService: reservationReleased
+        deactivate DB
+        
+        OrderService --> UI: orderFailed(errorMessage)
+        UI --> Customer: displayPaymentError()
+    end
+
+    deactivate OrderService
+    deactivate UI
+end
+
+@enduml
