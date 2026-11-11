@@ -13,7 +13,7 @@ activate A
 A -> App : cancelEvent(event_id, reason)
 activate App
 
-App -> DB : updateEventStatus(event_id, status="CANCELLED")
+App -> DB : updateEventStatus(event_id, status=EventStatus.CANCELLED)
 activate DB
 DB --> App : listOfTickets(ticket_id, customer_email, payment_id, price)
 deactivate DB
@@ -23,9 +23,9 @@ loop Для кожного купленого квитка
     activate PG
     
     alt Успішне повернення коштів
-        PG --> App : refund_status = SUCCESS
+        PG --> App : refund_status = PaymentStatus.SUCCESS
         
-        App -> DB : updateTicketAndPaymentStatus(ticket_id, status="REFUNDED")
+        App -> DB : updateTicketAndPaymentStatus(ticket_id, status=TicketStatus.REFUNDED, payment_status=PaymentStatus.REFUNDED)
         activate DB
         deactivate DB
         
@@ -37,7 +37,7 @@ loop Для кожного купленого квитка
         end
 
     else Помилка повернення
-        PG --> App : refund_status = FAILED
+        PG --> App : refund_status = PaymentStatus.FAILED
         App -> DB : logRefundError(ticket_id, payment_id)
         activate DB
         deactivate DB

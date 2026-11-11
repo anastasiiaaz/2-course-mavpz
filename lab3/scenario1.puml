@@ -13,7 +13,7 @@ activate C
 C -> App : selectSeat(event_id, seat_id)
 activate App
 
-App -> DB : reserveSeat(seat_id, expires_in=10m)
+App -> DB : reserveSeat(seat_id, expires_in=10m, status=TicketStatus.RESERVED)
 activate DB
 DB --> App : reservation_ok
 deactivate DB
@@ -32,9 +32,9 @@ App -> PG : processPayment(amount)
 activate PG
 
 alt Успішна транзакція
-    PG --> App : status = SUCCESS
+    PG --> App : status = PaymentStatus.SUCCESS
     
-    App -> DB : issueTicket(customer_id, seat_id, status="ACTIVE")
+    App -> DB : issueTicket(customer_id, seat_id, status=TicketStatus.ACTIVE)
     activate DB
     DB --> App : ticket_id
     deactivate DB
@@ -49,7 +49,7 @@ alt Успішна транзакція
     end
 
 else Оплата не пройшла
-    PG --> App : status = FAILED
+    PG --> App : status = PaymentStatus.FAILED
     
     App -> DB : cancelReservation(seat_id)
     activate DB

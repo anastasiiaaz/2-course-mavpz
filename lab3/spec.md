@@ -42,3 +42,7 @@
 **Кроки:** Адміністратор зчитує QR-код (`scanTicket`), а System перевіряє статус квитка в Database (`getTicketStatus`). Якщо статус `ACTIVE`, System оновлює його на `USED` у Database і видає «ACCESS GRANTED». Якщо статус вже `USED`, видається помилка про повторний прохід, а при статусі `REFUNDED` чи відсутності квитка — повідомлення про недійсність.
 
 ---
+
+- **TicketStatus**: `RESERVED`, `ACTIVE`, `USED`, `REFUNDED`, `EXPIRED`
+- **EventStatus**: `DRAFT`, `PUBLISHED`, `CANCELLED`, `COMPLETED`
+- **PaymentStatus**: `PENDING`, `SUCCESS`, `FAILED`, `REFUNDED`

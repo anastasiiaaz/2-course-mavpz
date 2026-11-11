@@ -16,16 +16,16 @@ activate DB
 DB --> App : Ticket(status, event_id)
 deactivate DB
 
-alt Сценарій 1: Квиток дійсний (status == "ACTIVE")
-    App -> DB : updateTicketStatus(ticket_id, new_status="USED")
+alt Сценарій 1: Квиток дійсний (status == TicketStatus.ACTIVE)
+    App -> DB : updateTicketStatus(ticket_id, new_status=TicketStatus.USED)
     activate DB
     deactivate DB
     App --> A : displayNotice("ACCESS GRANTED")
 
-else Сценарій 2: Повторний прохід (status == "USED")
+else Сценарій 2: Повторний прохід (status == TicketStatus.USED)
     App --> A : displayError("Помилка: Квиток вже використався")
 
-else Сценарій 3: Недійсний квиток / Інша подія
+else Сценарій 3: Недійсний квиток / Інша подія (status == TicketStatus.REFUNDED або недійсний)
     App --> A : displayError("Помилка: Квиток недійсний")
 end
 
