@@ -1,48 +1,34 @@
-@startuml
+@startuml scan_ticket
 autonumber
-actor "Admin" as Admin
-participant "ScannerApp UI" as UI
-participant "ScannerService" as Scanner
-participant "TicketService" as TicketService
+skinparam Style strictuml
+skinparam SequenceMessageAlignment center
+
+actor "Admin" as A
+participant "System" as App
 database "Database" as DB
 
-Admin -> UI: scanTicketQRCode(qrCodeData)
-activate UI
+activate A
+A -> App : scanTicket(qr_code)
+activate App
 
-UI -> Scanner: processScan(qrCodeData)
-activate Scanner
-
-Scanner -> TicketService: validateAndCheckIn(ticketId)
-activate TicketService
-
-TicketService -> DB: findTicketById(ticketId)
+App -> DB : getTicketStatus(ticket_id)
 activate DB
-DB --> TicketService: ticketDetails(status, eventId, holderName)
+DB --> App : Ticket(status, event_id)
 deactivate DB
 
-alt Сценарій 1: Квиток дійсний [status == "active"]
-    TicketService -> DB: updateTicketStatus(ticketId, newStatus="used")
+alt Сценарій 1: Квиток дійсний (status == "ACTIVE")
+    App -> DB : updateTicketStatus(ticket_id, new_status="USED")
     activate DB
-    DB --> TicketService: statusUpdated
     deactivate DB
+    App --> A : displayNotice("ACCESS GRANTED")
 
-    TicketService --> Scanner: checkInSuccess(ticketId, holderName)
-    Scanner --> UI: displaySuccessMessage("Ласкаво просимо! Квиток дійсний")
-    UI --> Admin: showGreenLight()
+else Сценарій 2: Повторний прохід (status == "USED")
+    App --> A : displayError("Помилка: Квиток вже використався")
 
-else Сценарій 2: Спроба повторного проходу [status == "used"]
-    TicketService -> DB: logInvalidScanAttempt(ticketId, reason="already_used")
-    activate DB
-    DB --> TicketService: attemptLogged
-    deactivate DB
-
-    TicketService --> Scanner: checkInFailed("Квиток вже використався")
-    Scanner --> UI: displayErrorMessage("Помилка доступу: Квиток вже використався")
-    UI --> Admin: showRedAlert()
+else Сценарій 3: Недійсний квиток / Інша подія
+    App --> A : displayError("Помилка: Квиток недійсний")
 end
 
-deactivate TicketService
-deactivate Scanner
-deactivate UI
-
+deactivate App
+deactivate A
 @enduml

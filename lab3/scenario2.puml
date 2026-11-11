@@ -1,69 +1,53 @@
-@startuml
+@startuml cancel_event
 autonumber
-actor "Admin" as Admin
-participant "Admin Dashboard UI" as UI
-participant "EventService" as EventService
-participant "TicketService" as TicketService
-participant "Payment Gateway" as Payment
-participant "Email Service" as Email
+skinparam Style strictuml
+skinparam SequenceMessageAlignment center
+
+actor "Admin" as A
+participant "System" as App
 database "Database" as DB
+actor "Payment Gateway" as PG
+actor "Email Service" as ES
 
-Admin -> UI: cancelEvent(eventId, reason)
-activate UI
+activate A
+A -> App : cancelEvent(event_id, reason)
+activate App
 
-UI -> EventService: processEventCancellation(adminId, eventId, reason)
-activate EventService
-
-EventService -> DB: checkAdminPermissions(adminId)
+App -> DB : updateEventStatus(event_id, status="CANCELLED")
 activate DB
-DB --> EventService: permissionsValid
+DB --> App : listOfTickets(ticket_id, customer_email, payment_id, price)
 deactivate DB
 
-EventService -> DB: updateEventStatus(eventId, status="cancelled")
-activate DB
-DB --> EventService: eventUpdated
-deactivate DB
-
-EventService -> TicketService: processRefundsAndNotifications(eventId)
-activate TicketService
-
-TicketService -> DB: getPurchasedTicketsByEvent(eventId)
-activate DB
-DB --> TicketService: ticketList
-deactivate DB
-
-loop Для кожного придбаного квитка з ticketList
-    TicketService -> Payment: initiateRefund(transactionId, amount)
-    activate Payment
-    Payment --> TicketService: refundStatus
-    deactivate Payment
-
-    alt Refund Success [status == "success"]
-        TicketService -> DB: updateTicketStatus(ticketId, status="refunded")
+loop Для кожного купленого квитка
+    App -> PG : processRefund(payment_id, amount=price)
+    activate PG
+    
+    alt Успішне повернення коштів
+        PG --> App : refund_status = SUCCESS
+        
+        App -> DB : updateTicketAndPaymentStatus(ticket_id, status="REFUNDED")
         activate DB
-        DB --> TicketService: statusUpdated
         deactivate DB
+        
+        par
+            App -> ES : sendCancellationEmail(customer_email, event_id)
+            activate ES
+            ES --> App : email_sent
+            deactivate ES
+        end
 
-        TicketService -> Email: sendEventCancellationEmail(customerEmail, eventTitle, refundAmount)
-        activate Email
-        Email --> TicketService: emailQueued
-        deactivate Email
-
-    else Refund Failed [status != "success"]
-        TicketService -> DB: logRefundFailure(ticketId, reason)
+    else Помилка повернення
+        PG --> App : refund_status = FAILED
+        App -> DB : logRefundError(ticket_id, payment_id)
         activate DB
-        DB --> TicketService: failureLogged
         deactivate DB
     end
+    
+    deactivate PG
 end
 
-TicketService --> EventService: cancellationProcessingCompleted()
-deactivate TicketService
+App --> A : displayNotice("Event cancelled. Refunds processed.")
 
-EventService --> UI: eventCancelledSuccess(eventId, totalTicketsProcessed)
-UI --> Admin: displayCancellationConfirmation()
-
-deactivate EventService
-deactivate UI
-
+deactivate App
+deactivate A
 @enduml
