@@ -30,27 +30,10 @@ C -> App : submitPayment(payment_details)
 
 App -> PG : processPayment(amount)
 activate PG
+PG --> App : status
+deactivate PG
 
-alt Успішна транзакція
-    PG --> App : status = PaymentStatus.SUCCESS
-    
-    App -> DB : issueTicket(customer_id, seat_id, status=TicketStatus.ACTIVE)
-    activate DB
-    DB --> App : ticket_id
-    deactivate DB
-    
-    par
-        App -> ES : sendEmailNotification(customer_email, ticket_id)
-        activate ES
-        ES --> App : email_sent
-        deactivate ES
-    else
-        App --> C : displaySuccessScreen(ticket_id)
-    end
-
-else Оплата не пройшла
-    PG --> App : status = PaymentStatus.FAILED
-    
+break Оплата не пройшла [status == PaymentStatus.FAILED]
     App -> DB : cancelReservation(seat_id)
     activate DB
     DB --> App : seat_available
@@ -59,7 +42,20 @@ else Оплата не пройшла
     App --> C : displayPaymentError("Transaction declined")
 end
 
-deactivate PG
+App -> DB : issueTicket(customer_id, seat_id, status=TicketStatus.ACTIVE)
+activate DB
+DB --> App : ticket_id
+deactivate DB
+
+par
+    App -> ES : sendEmailNotification(customer_email, ticket_id)
+    activate ES
+    ES --> App : email_sent
+    deactivate ES
+else
+    App --> C : displaySuccessScreen(ticket_id)
+end
+
 deactivate App
 deactivate C
 @enduml

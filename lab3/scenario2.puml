@@ -22,24 +22,26 @@ loop Для кожного купленого квитка
     App -> PG : processRefund(payment_id, amount=price)
     activate PG
     
-    alt Успішне повернення коштів
+    alt Успішне повернення коштів [refund_status == PaymentStatus.SUCCESS]
         PG --> App : refund_status = PaymentStatus.SUCCESS
         
-        App -> DB : updateTicketAndPaymentStatus(ticket_id, status=TicketStatus.REFUNDED, payment_status=PaymentStatus.REFUNDED)
-        activate DB
-        deactivate DB
-        
-        par
+        par Оновлення статусу та сповіщення клієнта
+            App -> DB : updateTicketAndPaymentStatus(ticket_id, status=TicketStatus.REFUNDED, payment_status=PaymentStatus.REFUNDED)
+            activate DB
+            DB --> App : status_updated
+            deactivate DB
+        else
             App -> ES : sendCancellationEmail(customer_email, event_id)
             activate ES
             ES --> App : email_sent
             deactivate ES
         end
 
-    else Помилка повернення
+    else Помилка повернення [refund_status == PaymentStatus.FAILED]
         PG --> App : refund_status = PaymentStatus.FAILED
         App -> DB : logRefundError(ticket_id, payment_id)
         activate DB
+        DB --> App : error_logged
         deactivate DB
     end
     

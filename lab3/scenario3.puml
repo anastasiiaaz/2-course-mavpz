@@ -19,6 +19,7 @@ deactivate DB
 alt Сценарій 1: Квиток дійсний (status == TicketStatus.ACTIVE)
     App -> DB : updateTicketStatus(ticket_id, new_status=TicketStatus.USED)
     activate DB
+    DB --> App : status_updated
     deactivate DB
     App --> A : displayNotice("ACCESS GRANTED")
 
