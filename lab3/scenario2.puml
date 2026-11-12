@@ -6,8 +6,8 @@ skinparam SequenceMessageAlignment center
 actor "Admin" as A
 participant "System" as App
 database "Database" as DB
-actor "Payment Gateway" as PG
-actor "Email Service" as ES
+participant "Payment Gateway" as PG
+participant "Email Service" as ES
 
 activate A
 A -> App : cancelEvent(event_id, reason)
