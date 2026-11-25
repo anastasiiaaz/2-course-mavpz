@@ -1,0 +1,76 @@
+@startuml activity_buy_ticket
+
+skinparam wrapWidth 220
+skinparam swimlaneWidth same
+
+|Customer|
+start
+:Select seat;
+
+|System|
+:Check seat availability;
+if (Seat available?) then ([available])
+else ([taken])
+  :Show message "Seat is already taken";
+  stop
+endif
+:Reserve seat for 10 minutes;
+
+|Customer|
+if (Use promocode?) then ([yes])
+  :Enter promocode;
+  |System|
+  :Validate promocode;
+  if (Promocode valid?) then ([valid])
+    :Recalculate price;
+  else ([invalid or expired])
+    :Show promocode error,\ncontinue at base price;
+  endif
+else ([no])
+endif
+
+|Customer|
+:Enter payment details;
+
+|System|
+:Send payment request>
+
+|Payment Gateway|
+:Process payment;
+:Send payment result>
+
+|System|
+if (Payment result?) then ([failed])
+  :Cancel seat reservation;
+  :Set payment status "failed";
+  :Show message\n"Payment failed. Try another card.";
+  stop
+elseif (Payment not completed?) then ([not completed])
+  :Cancel seat reservation;
+  :Show message "Payment was not completed";
+  stop
+else ([success])
+endif
+
+:Create ticket;
+
+fork
+  |Customer|
+  :Show success screen;
+fork again
+  |System|
+  :Send email with ticket>
+  |Email Service|
+  :Deliver email;
+  :Send delivery status>
+  |System|
+  if (Delivery confirmed?) then ([confirmed])
+    :Mark notification as delivered;
+  else ([error or no response])
+    :Log email failure;
+    :Schedule email retry;
+  endif
+end fork
+
+stop
+@enduml
