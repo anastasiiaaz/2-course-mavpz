@@ -13,6 +13,15 @@ activate C
 C -> App : selectSeat(event_id, seat_id)
 activate App
 
+App -> DB : getSeatStatus(event_id, seat_id)
+activate DB
+DB --> App : seat_status
+deactivate DB
+
+break Місце зайняте [seat_status == taken]
+    App --> C : displaySeatTakenError("Місце вже зайняте")
+end
+
 App -> DB : reserveSeat(seat_id, expires_in=10m, status=TicketStatus.RESERVED)
 activate DB
 DB --> App : reservation_ok
@@ -24,6 +33,12 @@ opt Використання промокоду
     activate DB
     DB --> App : discount_percentage
     deactivate DB
+
+    alt Промокод недійсний [discount_percentage == null]
+        App --> C : displayPromocodeError("Промокод недійсний")
+    else Промокод дійсний
+        App -> App : recalculatePrice(discount_percentage)
+    end
 end
 
 C -> App : submitPayment(payment_details)
@@ -38,8 +53,22 @@ break Оплата не пройшла [status == PaymentStatus.FAILED]
     activate DB
     DB --> App : seat_available
     deactivate DB
-    
-    App --> C : displayPaymentError("Transaction declined")
+
+    App -> DB : setPaymentStatus(PaymentStatus.FAILED)
+    activate DB
+    DB --> App : payment_updated
+    deactivate DB
+
+    App --> C : displayPaymentError("Оплата не пройшла. Спробуйте іншу картку.")
+end
+
+break Оплата не завершена [немає статусу: клієнт скасував, резерв сплив або шлюз не відповів]
+    App -> DB : cancelReservation(seat_id)
+    activate DB
+    DB --> App : seat_available
+    deactivate DB
+
+    App --> C : displayPaymentNotCompleted("Оплата не завершена")
 end
 
 App -> DB : issueTicket(customer_id, seat_id, status=TicketStatus.ACTIVE)
@@ -52,6 +81,15 @@ par
     activate ES
     ES --> App : email_sent
     deactivate ES
+
+    opt Лист не доставлено [email_sent == false або немає відповіді]
+        App -> DB : logEmailFailure(ticket_id)
+        activate DB
+        DB --> App : logged
+        deactivate DB
+
+        App -> App : scheduleEmailRetry(ticket_id)
+    end
 else
     App --> C : displaySuccessScreen(ticket_id)
 end
